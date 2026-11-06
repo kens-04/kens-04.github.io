@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ten Cities, One Year: Collecting U.S. Weather Data with Python</title>
+<meta name="description" content="A reproducible STAT 386 project comparing 3,650 city-days of 2025 temperature, precipitation, and wind data from Open-Meteo.">
+<style>
+:root{color-scheme:light;--ink:#20333d;--muted:#52636c;--accent:#176b87}*{box-sizing:border-box}body{margin:0;background:#fafafa;color:var(--ink);font:18px/1.75 system-ui,-apple-system,sans-serif}main{max-width:880px;margin:auto;padding:40px 26px 70px}a{color:var(--accent);text-underline-offset:3px}nav{font-size:15px;margin-bottom:40px}h1{font-size:clamp(32px,5vw,48px);line-height:1.15;letter-spacing:-1px;margin:14px 0 20px}h2{font-size:26px;line-height:1.3;margin:42px 0 14px}p{margin:18px 0}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;color:var(--accent);text-transform:uppercase}.meta,figcaption{font-size:14px;color:var(--muted)}.question{border-left:4px solid var(--accent);padding:12px 22px;background:#edf4f6;font-size:20px}figure{margin:28px -12px}img{display:block;width:100%;height:auto}figcaption{padding:10px 12px;line-height:1.6}code{background:#eaf0f2;border-radius:3px;padding:2px 5px;font-size:.86em}footer{margin-top:45px;padding-top:20px;border-top:1px solid #d2dce0;font-size:15px}strong{font-weight:650}@media(max-width:550px){main{padding:24px 20px}figure{margin:24px -10px}body{font-size:17px}}
+</style>
+</head>
+<body>
+<main>
+<nav><a href="/">← Kensho's blog</a></nav>
+<header>
+<div class="eyebrow">STAT 386 · Data Acquisition</div>
+<h1>Ten Cities, One Year: Collecting U.S. Weather Data with Python</h1>
+<p class="meta">November 6, 2026 · About 5 minutes</p>
+</header>
+<article>
+<h2>What does “different weather” actually mean?</h2>
+<p>Weather affects travel plans, outdoor activities, and everyday routines. But comparing cities with a single label, such as “rainy” or “warm,” hides important differences. A city can receive a large amount of precipitation in relatively few days. Two cities can have similar annual temperatures while experiencing very different winters.</p>
+<p class="question"><strong>My question:</strong> How did temperature, precipitation, and wind patterns differ across ten U.S. cities in 2025?</p>
+<p>Following my proposal, I selected Provo, Salt Lake City, Seattle, Los Angeles, Phoenix, Denver, Chicago, New York, Miami, and Boston. These locations provide useful contrasts between coastal, inland, northern, and southern settings. They are a deliberate selection, so the results describe these cities rather than representing the entire country.</p>
+
+<h2>From two APIs to one dataset</h2>
+<p>I used Python's <code>requests</code> and <code>pandas</code> libraries with Open-Meteo. The <a href="https://open-meteo.com/en/docs/geocoding-api">Geocoding API</a> supplies location information, while the <a href="https://open-meteo.com/en/docs/historical-weather-api">Historical Weather API</a> supplies daily weather. A similar project can start with these four steps:</p>
+<ol>
+<li>Query each city, then verify its country and state. City names alone can identify the wrong location.</li>
+<li>Use the returned coordinates and local time zone to request January 1–December 31, 2025. Explicitly select Celsius, millimeters, and kilometers per hour.</li>
+<li>Request daily maximum, minimum, and mean temperature, total precipitation, and maximum wind speed. I fixed the model to ERA5 for all cities.</li>
+<li>Combine the daily records, attach city information, and derive month, season, daily temperature range, and a wet-day indicator.</li>
+</ol>
+<p>The result is <strong>3,650 rows and 15 variables</strong>: 365 dates for each of ten cities. Each observation represents one city-day. This is an original curation because the code joins location and weather responses and creates additional variables for comparison. The <a href="https://github.com/kens-04/stat386-us-weather-2025">separate code and data repository</a> includes documented scripts, a data dictionary, raw responses, processed CSV files, and figures.</p>
+<p>The collection script caches responses, records request URLs and retrieval times, pauses between requests, and retries temporary failures with backoff. A fresh collection uses twenty successful HTTP requests. Running it with <code>--offline</code> rebuilds the dataset from saved responses, making the published analysis reproducible without repeatedly contacting the service.</p>
+
+<h2>Permission and quality before analysis</h2>
+<p>I checked Open-Meteo's <a href="https://open-meteo.com/en/terms">terms</a> and <a href="https://open-meteo.com/en/licence">licence</a> before collection. The free service permits noncommercial educational use within its rate limits. API data can be shared under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> with attribution, a licence link, and an explanation of changes. I credit Open-Meteo, Copernicus ERA5, and GeoNames and identify the transformations in the repository. Only public city-level environmental data are collected; no personal information or private API keys are involved.</p>
+<p>Validation found <strong>zero missing cells and zero duplicate city-date pairs</strong>. Every city had all 365 expected dates. The script also checked units, nonnegative precipitation and wind, and whether minimum temperature ≤ mean temperature ≤ maximum temperature. No observations were dropped or imputed. Passing these checks establishes a structurally complete dataset, but does not guarantee that every estimate matches local conditions.</p>
+
+<h2>Temperature: annual averages hide seasonal contrasts</h2>
+<p>Miami had the highest annual mean temperature, <strong>25.13°C</strong>, followed by Phoenix at <strong>24.56°C</strong>. Boston was lowest at <strong>10.70°C</strong>. However, Phoenix's average daily maximum was <strong>31.22°C</strong>, compared with Miami's <strong>27.32°C</strong>. The meaning of “warmest” therefore depends on whether we compare daily means or daytime highs.</p>
+<figure>
+<img src="assets/weather-2025/monthly_temperature.png" width="2550" height="1088" alt="Ten city panels on a common temperature scale show monthly mean temperatures in 2025, with stronger seasonal changes in Chicago and Provo than Miami and Los Angeles.">
+<figcaption>Figure 1. Monthly averages of daily mean temperatures; all panels share the same vertical scale. <a href="https://open-meteo.com/">Weather data by Open-Meteo</a>, using Copernicus ERA5.</figcaption>
+</figure>
+<p>Chicago's summer mean exceeded its winter mean by <strong>25.99°C</strong>; Miami's difference was only <strong>6.52°C</strong>. Provo also had a large difference, <strong>25.24°C</strong>. Here, summer means June–August, and winter combines January–February and December within 2025. These are descriptive seasonal comparisons, not estimates of long-term climate.</p>
+
+<h2>Precipitation: amount and frequency are different</h2>
+<p>Seattle recorded the highest estimated annual precipitation, <strong>1,303.3 mm</strong>, slightly above Miami's <strong>1,248.1 mm</strong>. Yet Miami had more wet days: <strong>160 versus 148</strong>, using a threshold of at least 1 mm per day. Phoenix had the lowest annual total, <strong>217.6 mm</strong>.</p>
+<figure>
+<img src="assets/weather-2025/precipitation.png" width="2040" height="1020" alt="Paired bar charts compare annual precipitation and days with at least 1 millimeter; Seattle leads total precipitation, while Miami leads wet-day frequency.">
+<figcaption>Figure 2. Annual precipitation includes rain and snow water equivalent; wet days require at least 1 mm. <a href="https://open-meteo.com/">Weather data by Open-Meteo</a>. Totals in the chart are rounded to whole millimeters.</figcaption>
+</figure>
+<p>Los Angeles illustrates why both measures matter. Its <strong>450.5 mm</strong> annual total was more than twice Phoenix's, despite having only <strong>35 wet days</strong> compared with Phoenix's <strong>38</strong>. A traveler concerned about how often precipitation interrupts outdoor plans might prefer a frequency measure over an annual total.</p>
+
+<h2>Wind and the limits of this comparison</h2>
+<p>Chicago had the highest mean daily maximum wind speed, <strong>21.54 km/h</strong>, narrowly above Boston at <strong>21.42 km/h</strong>. Provo was lowest at <strong>9.95 km/h</strong>. This statistic averages daily maxima at 10 meters; it is not average all-day wind speed or maximum gust speed.</p>
+<figure>
+<img src="assets/weather-2025/wind.png" width="1530" height="969" alt="Horizontal bars show the mean daily maximum wind speed, highest in Chicago and Boston and lowest in Provo.">
+<figcaption>Figure 3. Means of 365 daily maximum wind speeds. <a href="https://open-meteo.com/">Weather data by Open-Meteo</a>. Small ranking differences should be interpreted cautiously.</figcaption>
+</figure>
+<p>ERA5 is gridded reanalysis, combining observations with modeling. One grid location cannot capture every neighborhood, mountain slope, or local storm. Consecutive days are also related, and one year cannot establish climate trends. The main lesson is that a useful comparison needs clearly defined measures: mean versus maximum temperature, precipitation amount versus frequency, and daily maximum versus average wind. A next step would be repeating this workflow across several years to see which patterns persist.</p>
+</article>
+<footer><a href="https://github.com/kens-04/stat386-us-weather-2025">Explore the code, raw data, and reproducible analysis →</a><p>Data and figures are transformed summaries of <a href="https://open-meteo.com/">Open-Meteo</a> data, under <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Location data: <a href="https://www.geonames.org/">GeoNames</a>.</p></footer>
+</main>
+</body>
+</html>

@@ -1,3 +1,7 @@
+**New post:** [Ten Cities, One Year: Collecting U.S. Weather Data with Python](data-acquisition-weather-2025.html) · November 6, 2026
+
+---
+
 # How to Find and Handle Missing Values in R
 
 ## Introduction
